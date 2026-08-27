@@ -45,7 +45,7 @@ def create_app() -> FastAPI:
         allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|.*\.railway\.app|.*\.up\.railway\.app)(:\d+)?$",
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+        allow_headers=["*"],
         max_age=86400,
     )
 
