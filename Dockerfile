@@ -3,8 +3,7 @@ FROM python:3.11-slim
 
 # Avoid buffering stdout/stderr
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PORT=8000
+    PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
 
