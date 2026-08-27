@@ -21,10 +21,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy source code and database assets
 COPY . .
 
-# Ensure upload directories exist
-RUN mkdir -p uploads/profiles uploads/caretaker_docs uploads/complaints
+# Ensure upload directories exist and start script is executable
+RUN mkdir -p uploads/profiles uploads/caretaker_docs uploads/complaints && \
+    chmod +x start.sh
 
 EXPOSE 8000
 
-# Run uvicorn on port 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Launch through start.sh entrypoint
+CMD ["./start.sh"]
