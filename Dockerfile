@@ -26,5 +26,5 @@ RUN mkdir -p uploads/profiles uploads/caretaker_docs uploads/complaints
 
 EXPOSE 8000
 
-# Run database auto-migration and launch uvicorn
-CMD ["sh", "-c", "python -m scripts.init_db && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Run uvicorn on port 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
