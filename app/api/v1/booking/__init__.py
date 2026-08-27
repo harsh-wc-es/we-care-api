@@ -1,0 +1,3 @@
+"""
+WeCare — Booking API Module
+"""

@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS `caregiver_pricing_history` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `caretaker_user_id` int(11) NOT NULL,
+  `old_tier_id` int(11) DEFAULT NULL,
+  `new_tier_id` int(11) DEFAULT NULL,
+  `old_customer_rate_per_hour` decimal(10,2) DEFAULT NULL,
+  `new_customer_rate_per_hour` decimal(10,2) DEFAULT NULL,
+  `old_caregiver_rate_per_hour` decimal(10,2) DEFAULT NULL,
+  `new_caregiver_rate_per_hour` decimal(10,2) DEFAULT NULL,
+  `old_commission_percent` decimal(5,2) DEFAULT NULL,
+  `new_commission_percent` decimal(5,2) DEFAULT NULL,
+  `admin_user_id` int(11) DEFAULT NULL,
+  `admin_note` text DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_caregiver_pricing_history_caretaker` (`caretaker_user_id`),
+  KEY `idx_caregiver_pricing_history_admin` (`admin_user_id`),
+  CONSTRAINT `fk_caregiver_pricing_history_admin` FOREIGN KEY (`admin_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_caregiver_pricing_history_caretaker` FOREIGN KEY (`caretaker_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

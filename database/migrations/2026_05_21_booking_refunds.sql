@@ -1,0 +1,37 @@
+-- Manual booking refund tracking for cancelled paid bookings.
+-- Prototype/demo mode: no external gateway refund API is called.
+
+CREATE TABLE IF NOT EXISTS booking_refunds (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL,
+    family_user_id INT NOT NULL,
+    caretaker_user_id INT NULL,
+    payment_id INT NULL,
+    paid_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    refund_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    refund_percentage DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    refund_method VARCHAR(50) NULL,
+    refund_transaction_id VARCHAR(255) NULL,
+    reason TEXT NULL,
+    status ENUM('pending','approved','rejected','processed','failed') NOT NULL DEFAULT 'pending',
+    admin_note TEXT NULL,
+    processed_by_admin_id INT NULL,
+    approved_at DATETIME NULL,
+    rejected_at DATETIME NULL,
+    processed_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_booking_refunds_booking (booking_id),
+    KEY idx_booking_refunds_booking (booking_id),
+    KEY idx_booking_refunds_family (family_user_id),
+    KEY idx_booking_refunds_caretaker (caretaker_user_id),
+    KEY idx_booking_refunds_payment (payment_id),
+    KEY idx_booking_refunds_status (status),
+    KEY idx_booking_refunds_created_at (created_at),
+    KEY idx_booking_refunds_admin (processed_by_admin_id),
+    CONSTRAINT fk_booking_refunds_booking FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE,
+    CONSTRAINT fk_booking_refunds_family FOREIGN KEY (family_user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_booking_refunds_caretaker FOREIGN KEY (caretaker_user_id) REFERENCES users (id) ON DELETE SET NULL,
+    CONSTRAINT fk_booking_refunds_payment FOREIGN KEY (payment_id) REFERENCES payments (id) ON DELETE SET NULL,
+    CONSTRAINT fk_booking_refunds_admin FOREIGN KEY (processed_by_admin_id) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
