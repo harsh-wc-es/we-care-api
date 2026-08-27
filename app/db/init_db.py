@@ -21,13 +21,18 @@ def get_base_project_dir() -> str:
 
 
 def execute_sql_file(connection, file_path: str) -> None:
-    """Executes multi-statement SQL script file safely."""
+    """Executes multi-statement SQL script file safely with foreign key checks disabled."""
     if not os.path.exists(file_path):
         logger.warning(f"SQL file not found at {file_path}")
         return
 
     with open(file_path, "r", encoding="utf-8") as f:
         sql_content = f.read()
+
+    try:
+        connection.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+    except Exception:
+        pass
 
     # Split SQL into distinct statements ignoring comments and blank lines
     raw_statements = sql_content.split(";")
@@ -43,12 +48,17 @@ def execute_sql_file(connection, file_path: str) -> None:
             try:
                 connection.execute(text(clean_stmt))
             except Exception as e:
-                logger.debug(f"Statement notice during SQL init: {e}")
+                logger.warning(f"SQL execute notice: {e} | Stmt: {clean_stmt[:80]}")
+
+    try:
+        connection.execute(text("SET FOREIGN_KEY_CHECKS=1"))
+    except Exception:
+        pass
 
 
 def auto_init_database(max_retries: int = 5, retry_delay: int = 3) -> bool:
     """
-    Checks if database tables exist. If empty, runs schema and initial seed data.
+    Checks if database tables exist. If missing core tables, runs schema and initial seed data.
     Retries up to max_retries times to accommodate container boot latency.
     """
     import time
@@ -62,8 +72,17 @@ def auto_init_database(max_retries: int = 5, retry_delay: int = 3) -> bool:
     for folder in ["profiles", "caretaker_docs", "complaints"]:
         os.makedirs(os.path.join(upload_base, folder), exist_ok=True)
 
-    # Informative log on configured target
-    logger.info(f"[DB-INIT] Attempting connection to host='{settings.DB_HOST or settings.MYSQLHOST}' db='{settings.database_name}'")
+    REQUIRED_TABLES = [
+        "users",
+        "pricing_tiers",
+        "caretaker_profiles",
+        "family_profiles",
+        "bookings",
+        "sos_alerts",
+        "complaints",
+        "admin_audit_logs",
+        "replacement_tickets",
+    ]
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -71,14 +90,16 @@ def auto_init_database(max_retries: int = 5, retry_delay: int = 3) -> bool:
             inspector = inspect(engine)
             existing_tables = inspector.get_table_names()
 
-            if "users" not in existing_tables or "pricing_tiers" not in existing_tables:
-                logger.info("[DB-INIT] Core tables missing. Applying database schema...")
+            missing = [t for t in REQUIRED_TABLES if t not in existing_tables]
+
+            if missing:
+                logger.info(f"[DB-INIT] Missing tables {missing}. Applying full database schema...")
                 with engine.begin() as conn:
                     execute_sql_file(conn, schema_path)
                 logger.info("[DB-INIT] Schema applied successfully.")
 
                 if os.path.exists(seed_path):
-                    logger.info("[DB-INIT] Applying initial seed data (admin & pricing tiers)...")
+                    logger.info("[DB-INIT] Applying initial seed data...")
                     with engine.begin() as conn:
                         execute_sql_file(conn, seed_path)
                     logger.info("[DB-INIT] Seed data applied successfully.")
