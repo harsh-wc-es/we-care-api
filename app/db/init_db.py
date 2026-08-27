@@ -68,55 +68,46 @@ def auto_init_database(max_retries: int = 5, retry_delay: int = 3) -> bool:
     for attempt in range(1, max_retries + 1):
         try:
             engine = get_engine()
-            with engine.connect() as conn:
-                inspector = inspect(engine)
-                existing_tables = inspector.get_table_names()
+            inspector = inspect(engine)
+            existing_tables = inspector.get_table_names()
 
-                if "users" not in existing_tables or "pricing_tiers" not in existing_tables:
-                    logger.info("[DB-INIT] Core tables missing. Applying database schema...")
-                    with conn.begin():
-                        execute_sql_file(conn, schema_path)
-                    logger.info("[DB-INIT] Schema applied successfully.")
+            if "users" not in existing_tables or "pricing_tiers" not in existing_tables:
+                logger.info("[DB-INIT] Core tables missing. Applying database schema...")
+                with engine.begin() as conn:
+                    execute_sql_file(conn, schema_path)
+                logger.info("[DB-INIT] Schema applied successfully.")
 
-                    if os.path.exists(seed_path):
-                        logger.info("[DB-INIT] Applying initial seed data (admin & pricing tiers)...")
-                        with conn.begin():
-                            execute_sql_file(conn, seed_path)
-                        logger.info("[DB-INIT] Seed data applied successfully.")
-                else:
-                    res = conn.execute(text("SELECT COUNT(*) FROM users")).scalar()
-                    if res == 0 and os.path.exists(seed_path):
-                        logger.info("[DB-INIT] Empty database detected. Populating initial seed data...")
-                        with conn.begin():
-                            execute_sql_file(conn, seed_path)
-                        logger.info("[DB-INIT] Seed data populated.")
-                    else:
-                        logger.info(f"[DB-INIT] Database verified ({len(existing_tables)} tables present).")
+                if os.path.exists(seed_path):
+                    logger.info("[DB-INIT] Applying initial seed data (admin & pricing tiers)...")
+                    with engine.begin() as conn:
+                        execute_sql_file(conn, seed_path)
+                    logger.info("[DB-INIT] Seed data applied successfully.")
+            else:
+                logger.info(f"[DB-INIT] Database verified ({len(existing_tables)} tables present).")
 
-                    # Guarantee default admin user with valid bcrypt hash for Admin123!
-                    try:
-                        admin_hash = "$2b$10$kZdwG/oSrxBD/f/TMB1mQ.wbg9d.KR6K0jPBpYYXDUJy9UQaoeu0q"
-                        with conn.begin():
-                            conn.execute(
-                                text("""
-                                    INSERT INTO users (id, email, username, phone_number, password, role, is_verified, is_active, created_at, updated_at)
-                                    VALUES (1, 'admin@wecare.com', 'admin', '9000000001', :pwd, 'admin', 1, 1, NOW(), NOW())
-                                    ON DUPLICATE KEY UPDATE
-                                        email = 'admin@wecare.com',
-                                        username = 'admin',
-                                        password = :pwd,
-                                        role = 'admin',
-                                        is_verified = 1,
-                                        is_active = 1,
-                                        updated_at = NOW()
-                                """),
-                                {"pwd": admin_hash}
-                            )
-                            if "rate_limits" in existing_tables:
-                                conn.execute(text("TRUNCATE TABLE rate_limits"))
-                        logger.info(f"[DB-INIT] Guaranteed admin user (admin@wecare.com / Admin123!) on database '{engine.url.host}:{engine.url.database}'")
-                    except Exception as ex:
-                        logger.warning(f"[DB-INIT] Admin upsert notice: {ex}")
+            # Guarantee default admin user with valid bcrypt hash for Admin123!
+            try:
+                admin_hash = "$2b$10$kZdwG/oSrxBD/f/TMB1mQ.wbg9d.KR6K0jPBpYYXDUJy9UQaoeu0q"
+                with engine.begin() as conn:
+                    conn.execute(
+                        text("""
+                            INSERT INTO users (id, email, username, phone_number, password, role, is_verified, is_active, created_at, updated_at)
+                            VALUES (1, 'admin@wecare.com', 'admin', '9000000001', :pwd, 'admin', 1, 1, NOW(), NOW())
+                            ON DUPLICATE KEY UPDATE
+                                email = 'admin@wecare.com',
+                                username = 'admin',
+                                password = :pwd,
+                                role = 'admin',
+                                is_verified = 1,
+                                is_active = 1,
+                                updated_at = NOW()
+                        """),
+                        {"pwd": admin_hash}
+                    )
+                    conn.execute(text("TRUNCATE TABLE rate_limits"))
+                logger.info("[DB-INIT] Guaranteed admin user (admin@wecare.com / Admin123!) and reset rate limits.")
+            except Exception as ex:
+                logger.warning(f"[DB-INIT] Admin upsert notice: {ex}")
 
             return True
 
