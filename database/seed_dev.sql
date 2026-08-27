@@ -32,9 +32,9 @@ TRUNCATE TABLE `users`;
 INSERT INTO `users`
     (`id`, `email`, `username`, `phone_number`, `password`, `role`, `is_verified`, `is_active`, `created_at`, `updated_at`)
 VALUES
-    (1, 'admin@wecare.com', 'admin', '9000000001', '$2y$10$Hu72PRxLHDmdPGqETmyLnelj0uGrZHnVNxJe6etFUXGcOYlnc6Aq2', 'admin', 1, 1, NOW(), NOW()),
-    (2, 'family@wecare.com', 'family', '9000000002', '$2y$10$Hu72PRxLHDmdPGqETmyLnelj0uGrZHnVNxJe6etFUXGcOYlnc6Aq2', 'family', 1, 1, NOW(), NOW()),
-    (3, 'caretaker@wecare.com', 'caretaker', '9000000003', '$2y$10$Hu72PRxLHDmdPGqETmyLnelj0uGrZHnVNxJe6etFUXGcOYlnc6Aq2', 'caretaker', 1, 1, NOW(), NOW());
+    (1, 'admin@wecare.com', 'admin', '9000000001', '$2b$10$kZdwG/oSrxBD/f/TMB1mQ.wbg9d.KR6K0jPBpYYXDUJy9UQaoeu0q', 'admin', 1, 1, NOW(), NOW()),
+    (2, 'family@wecare.com', 'family', '9000000002', '$2b$10$8zqYRyGT.dnBZI7fNO1EF.pVrqTYZEyZABUW/wwv8AfZTG5N/5.Ka', 'family', 1, 1, NOW(), NOW()),
+    (3, 'caretaker@wecare.com', 'caretaker', '9000000003', '$2b$10$8zqYRyGT.dnBZI7fNO1EF.pVrqTYZEyZABUW/wwv8AfZTG5N/5.Ka', 'caretaker', 1, 1, NOW(), NOW());
 
 INSERT INTO `family_profiles`
     (`id`, `user_id`, `full_name`, `gender`, `address`, `city`, `state`, `pincode`, `emergency_contact_name`, `emergency_contact_phone`, `created_at`, `updated_at`)

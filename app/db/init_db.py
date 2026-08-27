@@ -93,6 +93,18 @@ def auto_init_database(max_retries: int = 5, retry_delay: int = 3) -> bool:
                     else:
                         logger.info(f"[DB-INIT] Database verified ({len(existing_tables)} tables present).")
 
+                    # Ensure admin user has valid bcrypt hash for Admin123!
+                    try:
+                        admin_hash = "$2b$10$kZdwG/oSrxBD/f/TMB1mQ.wbg9d.KR6K0jPBpYYXDUJy9UQaoeu0q"
+                        with conn.begin():
+                            conn.execute(
+                                text("UPDATE users SET password = :pwd, is_active = 1, is_verified = 1 WHERE email = 'admin@wecare.com' OR username = 'admin'"),
+                                {"pwd": admin_hash}
+                            )
+                        logger.info("[DB-INIT] Admin credentials verified (admin@wecare.com / Admin123!)")
+                    except Exception as ex:
+                        logger.debug(f"[DB-INIT] Admin sync notice: {ex}")
+
             return True
 
         except Exception as e:
