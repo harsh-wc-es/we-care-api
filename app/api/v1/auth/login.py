@@ -51,6 +51,8 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     # Authenticate (login L36-51)
     user = authenticate_user(db, identifier, password)
     if not user:
+        import logging
+        logging.getLogger(__name__).warning(f"Login failed for identifier='{identifier}'")
         return error_response("Invalid credentials", status_code=401)
 
     # Eligibility checks (login L53-61)

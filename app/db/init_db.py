@@ -93,19 +93,30 @@ def auto_init_database(max_retries: int = 5, retry_delay: int = 3) -> bool:
                     else:
                         logger.info(f"[DB-INIT] Database verified ({len(existing_tables)} tables present).")
 
-                    # Ensure admin user has valid bcrypt hash for Admin123!
+                    # Guarantee default admin user with valid bcrypt hash for Admin123!
                     try:
                         admin_hash = "$2b$10$kZdwG/oSrxBD/f/TMB1mQ.wbg9d.KR6K0jPBpYYXDUJy9UQaoeu0q"
                         with conn.begin():
                             conn.execute(
-                                text("UPDATE users SET password = :pwd, is_active = 1, is_verified = 1 WHERE email = 'admin@wecare.com' OR username = 'admin'"),
+                                text("""
+                                    INSERT INTO users (id, email, username, phone_number, password, role, is_verified, is_active, created_at, updated_at)
+                                    VALUES (1, 'admin@wecare.com', 'admin', '9000000001', :pwd, 'admin', 1, 1, NOW(), NOW())
+                                    ON DUPLICATE KEY UPDATE
+                                        email = 'admin@wecare.com',
+                                        username = 'admin',
+                                        password = :pwd,
+                                        role = 'admin',
+                                        is_verified = 1,
+                                        is_active = 1,
+                                        updated_at = NOW()
+                                """),
                                 {"pwd": admin_hash}
                             )
                             if "rate_limits" in existing_tables:
                                 conn.execute(text("TRUNCATE TABLE rate_limits"))
-                        logger.info("[DB-INIT] Admin credentials verified (admin@wecare.com / Admin123!) and rate limits reset.")
+                        logger.info(f"[DB-INIT] Guaranteed admin user (admin@wecare.com / Admin123!) on database '{engine.url.host}:{engine.url.database}'")
                     except Exception as ex:
-                        logger.debug(f"[DB-INIT] Admin sync notice: {ex}")
+                        logger.warning(f"[DB-INIT] Admin upsert notice: {ex}")
 
             return True
 
