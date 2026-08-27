@@ -101,7 +101,9 @@ def auto_init_database(max_retries: int = 5, retry_delay: int = 3) -> bool:
                                 text("UPDATE users SET password = :pwd, is_active = 1, is_verified = 1 WHERE email = 'admin@wecare.com' OR username = 'admin'"),
                                 {"pwd": admin_hash}
                             )
-                        logger.info("[DB-INIT] Admin credentials verified (admin@wecare.com / Admin123!)")
+                            if "rate_limits" in existing_tables:
+                                conn.execute(text("TRUNCATE TABLE rate_limits"))
+                        logger.info("[DB-INIT] Admin credentials verified (admin@wecare.com / Admin123!) and rate limits reset.")
                     except Exception as ex:
                         logger.debug(f"[DB-INIT] Admin sync notice: {ex}")
 
