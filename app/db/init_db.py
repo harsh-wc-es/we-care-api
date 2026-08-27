@@ -86,27 +86,35 @@ def auto_init_database(max_retries: int = 5, retry_delay: int = 3) -> bool:
 
     for attempt in range(1, max_retries + 1):
         try:
+            import app.models  # noqa: F401
+            from app.core.database import Base
+
             engine = get_engine()
+
+            # 1. Guarantee all 25+ database tables exist via SQLAlchemy ORM models
+            Base.metadata.create_all(bind=engine)
+
             inspector = inspect(engine)
             existing_tables = inspector.get_table_names()
+            logger.info(f"[DB-INIT] Database verified ({len(existing_tables)} tables present).")
 
-            missing = [t for t in REQUIRED_TABLES if t not in existing_tables]
-
-            if missing:
-                logger.info(f"[DB-INIT] Missing tables {missing}. Applying full database schema...")
+            # 2. Seed default pricing tiers if table is empty
+            try:
                 with engine.begin() as conn:
-                    execute_sql_file(conn, schema_path)
-                logger.info("[DB-INIT] Schema applied successfully.")
+                    tier_count = conn.execute(text("SELECT COUNT(*) FROM pricing_tiers")).scalar() or 0
+                    if tier_count == 0:
+                        conn.execute(text("""
+                            INSERT INTO pricing_tiers (tier_name, display_name, skill_level, customer_hourly_rate, caretaker_hourly_rate, platform_commission_hourly, commission_percentage, is_active)
+                            VALUES 
+                            ('basic', 'Basic Care', 'entry', 200.00, 150.00, 50.00, 25.00, 1),
+                            ('standard', 'Standard Care', 'intermediate', 300.00, 225.00, 75.00, 25.00, 1),
+                            ('premium', 'Specialized Care', 'specialized', 450.00, 337.50, 112.50, 25.00, 1)
+                        """))
+                        logger.info("[DB-INIT] Seeded default pricing tiers.")
+            except Exception as e:
+                logger.debug(f"[DB-INIT] Pricing tier check notice: {e}")
 
-                if os.path.exists(seed_path):
-                    logger.info("[DB-INIT] Applying initial seed data...")
-                    with engine.begin() as conn:
-                        execute_sql_file(conn, seed_path)
-                    logger.info("[DB-INIT] Seed data applied successfully.")
-            else:
-                logger.info(f"[DB-INIT] Database verified ({len(existing_tables)} tables present).")
-
-            # Guarantee default admin user with valid bcrypt hash for Admin123!
+            # 3. Guarantee default admin user with valid bcrypt hash for Admin123!
             try:
                 admin_hash = "$2b$10$kZdwG/oSrxBD/f/TMB1mQ.wbg9d.KR6K0jPBpYYXDUJy9UQaoeu0q"
                 with engine.begin() as conn:
